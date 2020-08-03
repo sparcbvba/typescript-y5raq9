@@ -50,12 +50,13 @@ class Tiles {
       
     // Images to be loaded and used.
     // Tutorial Note: As water is loaded first it will be represented by a 0 on the map and land will be a 1.
-    var tileGraphicsToLoad = ["/tutorials/images/water.png","/tutorials/images/land.png"],
+    var tileGraphicsToLoad = ["./images/water.png","./images/land.png"],
     tileGraphicsLoaded = 0;
 
     for (var i = 0; i < tileGraphicsToLoad.length; i++) {
       this._tileGraphics[i] = new Image();
       this._tileGraphics[i].src = tileGraphicsToLoad[i];
+      console.log(this._tileGraphics[i].src);
       this._tileGraphics[i].onload = function() {
         // Once the image is loaded increment the loaded graphics count and check if all images are ready.
         tileGraphicsLoaded++;
@@ -63,11 +64,12 @@ class Tiles {
             this._drawMap();
         }
       }
+      console.log(tileGraphicsLoaded);
     }
   }
 
   private _drawMap() {
-      
+      console.log('drawmap');
     // create the canvas context
     var canvasElement: any = document.getElementById(this._canvas);
     var ctx = canvasElement.getContext("2d");
