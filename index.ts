@@ -2,51 +2,81 @@
 import "./style.css";
 
 class Game {
-  _tiles: Tiles;
+  _tiles: Map;
 
   constructor() {
-    this._tiles = new Tiles("app");
+    this._tiles = new Map("app");
   }
 }
 
-class Tiles {
-  _canvas: string;
-  _map: number[][];
-  _tileGraphics = [];
-  _settings = {
-    x: 100,
-    y: 100
+class Tile {
+  _ctx;
+  _position = {
+    x: 0,
+    y: 0
   };
+  _mapX: number;
+  _mapY: number;
+  _image: any;
+  _width: number = 52;
+  _height: number = 25;
+
+  constructor(ctx, x, y, mapX, mapY, imageEl) {
+    this._image = imageEl;
+    this._ctx = ctx;
+    this._mapX = mapX;
+    this._mapY = mapY;
+    this._position = {
+      x: x,
+      y: y
+    };
+  }
+
+  render() {
+    this._ctx.drawImage(
+      this._image,
+      (this._position.x - this._position.y) * this._height + this._mapX,
+      ((this._position.x + this._position.y) * this._height) / 2 + this._mapY
+    );
+  }
+
+  click() {
+    console.log('tile clicked', this._mapX, this._mapY);
+  }
+}
+
+class Map {
+  _canvasElement: any;
+  _ctx: any;
+  _map: number[][];
+  _tileGraphics: any[] = [];
+  _settings = {
+    x: 10,
+    y: 10
+  };
+  _mapX: number;
+  _mapY: number;
+  _tiles: Tile[][] = [];
 
   constructor(canvas: string) {
-    this._canvas = canvas;
+    this._canvasElement = document.getElementById(canvas);
+    this._ctx = this._canvasElement.getContext("2d");
+
+    var tileH = 25;
+    var tileW = 52;
+
+    // mapX and mapY are offsets to make sure we can position the map as we want.
+    this._mapX = this._settings.x * tileH;
+    this._mapY = tileH;
+
+    this._canvasElement.width = this._mapX * 2.2;
+    this._canvasElement.height = tileH * this._settings.y + tileH * 2;
+
     this._init();
   }
   // Our init function contains all our code and will be called via the onLoad attribute in the <body> tag of our HTML page.
   private _init() {
-    // The two dimensional map array as it sounds is basically your world and what will be drawn.
-    // Each number can represet a different graphic or possible enviroment interaction.
-    // In this tutorial case we only have two possible tiles, zero which is blank and one which is filled.
-    // Two Dimensional Array storing our isometric map layout. Each number represents a tile.
-    //this._map = [[1, 0, 0, 0], [1, 0, 0, 1], [0, 0, 1, 1], [1, 0, 1, 1]];
     this._randomizeMap();
-
-    // The next part grabs the canvas element id of 'main' within our page <body>.
-
-    // Using two for loops we run through each of the array rows stored and their element values.
-    // for (var i = 0; i < this._map.length; i++) {
-    //   for (var j = 0; j < this._map[i].length; j++) {
-    //     // Check if the value is a 1, represeting a graphic should be drawn.
-    //     if (this._map[i][j] === 1) {
-    //       // Draw a rectangle at i & j position * 20 pixels so that
-    //       // our 20x20 pixel squares are correctly positioned.
-    //       ctx.fillStyle = "#FF0000";
-    //       ctx.fillRect(j * 20, i * 20, 20, 20);
-    //     }
-    //   }
-    // }
-
-    // Remove Event Listener and load images.
     this._loadImg();
   }
 
@@ -55,17 +85,16 @@ class Tiles {
     for (var i = 0; i < this._settings.y; i++) {
       this._map[i] = new Array(10);
       for (var j = 0; j < this._settings.x; j++) {
-        this._map[i][j] = Math.random() > 0.1 ? 1 : 0;
+        this._map[i][j] = Math.random() > 0.5 ? 1 : 0;
       }
     }
+    console.log(this._map);
   }
 
   private _loadImg() {
-    // Images to be loaded and used.
-    // Tutorial Note: As water is loaded first it will be represented by a 0 on the map and land will be a 1.
     var tileGraphicsToLoad = [
-        "https://jsiso.com/tutorials/images/water.png",
-        "https://jsiso.com/tutorials/images/land.png"
+        "https://jsiso.com/tutorials/images/water.png", // 0
+        "https://jsiso.com/tutorials/images/land.png" // 1
       ],
       tileGraphicsLoaded = 0;
     const that = this;
@@ -73,9 +102,7 @@ class Tiles {
     for (var i = 0; i < tileGraphicsToLoad.length; i++) {
       this._tileGraphics[i] = new Image();
       this._tileGraphics[i].src = tileGraphicsToLoad[i];
-      console.log(this._tileGraphics[i].src);
       this._tileGraphics[i].onload = function() {
-        // Once the image is loaded increment the loaded graphics count and check if all images are ready.
         tileGraphicsLoaded++;
         if (tileGraphicsLoaded === tileGraphicsToLoad.length) {
           that._drawMap();
@@ -85,38 +112,33 @@ class Tiles {
   }
 
   private _drawMap() {
-    // create the canvas context
-    var canvasElement: any = document.getElementById(this._canvas);
-    var ctx = canvasElement.getContext("2d");
-
     // Set as your tile pixel sizes, alter if you are using larger tiles.
-    var tileH = 25;
-    var tileW = 52;
 
-    // mapX and mapY are offsets to make sure we can position the map as we want.
-    var mapX = this._settings.x * tileH;
-    var mapY = tileH;
-
-    canvasElement.width = mapX * 2.2;
-    canvasElement.height = (tileH * this._settings.y) + tileH * 2;
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-
-    var drawTile;
+    this._ctx.fillStyle = "black";
+    this._ctx.fillRect(0, 0, this._canvasElement.width, this._canvasElement.height);
 
     // loop through our map and draw out the image represented by the number.
     for (var i = 0; i < this._map.length; i++) {
+      this._tiles[i] = [];
       for (var j = 0; j < this._map[i].length; j++) {
-        drawTile = this._map[i][j];
         // Draw the represented image number, at the desired X & Y coordinates followed by the graphic width and height.
-        ctx.drawImage(
-          this._tileGraphics[drawTile],
-          (i - j) * tileH + mapX,
-          ((i + j) * tileH) / 2 + mapY
-        );
+        var tile = new Tile(this._ctx, i, j, this._mapX, this._mapY, this._tileGraphics[this._map[i][j]]);
+        tile.render();
+        this._tiles[i][j] = tile;
       }
     }
+
+    this._canvasElement.addEventListener("click", (e: any) => {
+      this.getCursorPosition(this._canvasElement, e);
+    });
   }
+
+  getCursorPosition(canvas, event) {
+    const rect = canvas.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    console.log("x: " + x + " y: " + y)
+}
 }
 
 const game = new Game();
